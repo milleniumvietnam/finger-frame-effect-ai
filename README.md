@@ -11,8 +11,9 @@ finger frame acts as a window into the animated version.
 
 | App | Generation | Latency |
 |---|---|---|
-| [finger-frame-effect](https://sophiamyang.github.io/finger-frame-effect/) ([repo](https://github.com/sophiamyang/finger-frame-effect)) — live camera, local effects | Canvas 2D (Van Gogh, toon, glitch, …) | none |
+| [**`live/`**](live/) — live camera, local effects (in this repo) | Canvas 2D (Van Gogh, cartoon, neon, glitch, pixel, thermal) | none |
 | **this app** — recorded video, AI restyle | Gemini Omni Flash (offline video edit) | minutes |
+| [finger-frame-effect](https://sophiamyang.github.io/finger-frame-effect/) ([repo](https://github.com/sophiamyang/finger-frame-effect)) — the original live-camera app | Canvas 2D | none |
 | [finger-frame-effect-lucy](https://sophiamyang.github.io/finger-frame-effect-lucy/) ([repo](https://github.com/sophiamyang/finger-frame-effect-lucy)) — live camera, live AI | Decart Lucy 2.5 (realtime video-to-video) | ~real time |
 
 ![Example: AI-animated world inside the finger frame](examples/final.gif)
@@ -42,6 +43,31 @@ style ([full-quality mp4](examples/final.mp4)).*
    browser supports recording it (Safari, newer Chrome), otherwise `.webm`
    (convert with `ffmpeg -i finger-frame-ai.webm -c:v libx264 out.mp4`).
 
+## Live camera mode (`live/`)
+
+No key, no upload, no waiting: open [`live/`](live/), start the camera, and
+the finger frame becomes a window onto a restyled version of the room. Six
+effects, all Canvas 2D and all local:
+
+| | Effect | What it does |
+|---|---|---|
+| `1` | Van Gogh | short curved brush strokes laid along the image's edge directions, with a slow swirl field filling the flat areas |
+| `2` | Cartoon | posterized colour with a Sobel ink outline |
+| `3` | Neon | edges only, hue swept over time, bloomed with a blur pass |
+| `4` | Glitch | RGB channel split, scanlines, chunky band displacement |
+| `5` | Pixel art | nearest-neighbour downsample plus posterize |
+| `6` | Thermal | luminance through a heat-map ramp |
+
+Tracking is the same pipeline as the AI app above, so the window behaves
+identically — anatomical corner ordering, spread/area gates with hysteresis,
+teleport rejection, velocity-adaptive smoothing, dropout hold, presence fade.
+Effects run on a downscaled copy of the window region (≤320px), which keeps
+them real time regardless of how big the frame gets on screen.
+
+Keys: `1`–`6` pick an effect, `←`/`→` cycle, `M` mirrors, `S` saves a PNG,
+`R` starts/stops recording (MP4 where the browser supports it, otherwise
+`.webm`). Nothing is uploaded — the camera stream never leaves the tab.
+
 ## Bring your own key
 
 The AI step uses your own [Gemini API key](https://aistudio.google.com/apikey),
@@ -61,8 +87,9 @@ Any static server works:
 python3 -m http.server 8124
 ```
 
-Then open http://localhost:8124. A `?src=<file>` query param loads a video
-from the server directory (dev convenience).
+Then open http://localhost:8124 for the AI app, or
+http://localhost:8124/live/ for the live-camera one. A `?src=<file>` query
+param loads a video from the server directory (dev convenience).
 
 ## CLI alternative (Python)
 

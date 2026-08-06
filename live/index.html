@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finger Frame Live</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #080b12;
+      --card: rgba(255, 255, 255, 0.035);
+      --line: rgba(255, 255, 255, 0.09);
+      --text-dim: rgba(255, 255, 255, 0.6);
+      --text-faint: rgba(255, 255, 255, 0.42);
+      --accent-a: #4ad9c7;
+      --accent-b: #8f7bff;
+      --grad: linear-gradient(120deg, var(--accent-a), var(--accent-b));
+    }
+    html, body { min-height: 100%; }
+    body {
+      background:
+        radial-gradient(900px 500px at 10% -8%, rgba(74, 217, 199, 0.10), transparent 60%),
+        radial-gradient(800px 500px at 95% 25%, rgba(143, 123, 255, 0.10), transparent 55%),
+        var(--bg);
+      color: #f0f2f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 44px 16px 40px;
+    }
+
+    /* ---- header ---- */
+    header { text-align: center; margin-bottom: 28px; }
+    .mark {
+      position: relative;
+      width: 58px; height: 44px;
+      margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .mark i {
+      position: absolute; width: 14px; height: 14px;
+      border: 2.5px solid transparent;
+      border-image: var(--grad) 1;
+    }
+    .mark i:nth-child(1) { top: 0; left: 0; border-right: none; border-bottom: none; }
+    .mark i:nth-child(2) { top: 0; right: 0; border-left: none; border-bottom: none; }
+    .mark i:nth-child(3) { bottom: 0; left: 0; border-right: none; border-top: none; }
+    .mark i:nth-child(4) { bottom: 0; right: 0; border-left: none; border-top: none; }
+    h1 {
+      font-size: 30px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(120deg, #fff 30%, var(--accent-a));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .sub {
+      font-size: 14.5px;
+      color: var(--text-dim);
+      max-width: 500px;
+      line-height: 1.55;
+      margin: 0 auto;
+    }
+    .sub b { color: #fff; font-weight: 600; }
+
+    /* ---- effect picker ---- */
+    #fxbar {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+      width: min(720px, 100%);
+      margin-bottom: 16px;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-dim);
+      font: inherit;
+      font-size: 13px; font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .pill:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .pill.on {
+      background: var(--grad);
+      border-color: transparent;
+      color: #0a1016;
+    }
+    .pill .k {
+      font-size: 10px; font-weight: 800;
+      width: 16px; height: 16px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .pill.on .k { background: rgba(0, 0, 0, 0.18); }
+
+    /* ---- stage ---- */
+    #stage {
+      width: min(960px, 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .canvas-wrap {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+    }
+    canvas { display: block; width: 100%; border-radius: 10px; background: #000; }
+    video { display: none; }
+
+    #controls { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; align-items: center; }
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f0f2f5;
+      font-size: 13.5px;
+      font-weight: 650;
+      padding: 10px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    }
+    button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
+    button:active:not(:disabled) { transform: translateY(0); }
+    button:disabled { opacity: 0.35; cursor: default; }
+    button.primary {
+      background: var(--grad);
+      border: none;
+      color: #0a1016;
+      box-shadow: 0 6px 24px -8px rgba(110, 180, 220, 0.55);
+    }
+    button.primary:hover:not(:disabled) {
+      box-shadow: 0 10px 30px -8px rgba(110, 180, 220, 0.75);
+      background: var(--grad);
+    }
+    button.rec { border-color: rgba(255, 90, 90, 0.6); color: #ff8a8a; }
+    .toggle {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 12.5px; color: var(--text-dim);
+      cursor: pointer; user-select: none;
+      padding: 10px 4px;
+    }
+    .toggle input { accent-color: var(--accent-a); }
+
+    /* ---- status ---- */
+    .statusrow {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      align-items: center; justify-content: center;
+      max-width: min(720px, 100%);
+    }
+    #status {
+      display: none;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--text-dim);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 16px;
+      text-align: left;
+    }
+    #status:not(:empty) { display: inline-flex; }
+    #status.working::before {
+      content: "";
+      flex: none;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      border: 2px solid rgba(74, 217, 199, 0.25);
+      border-top-color: var(--accent-a);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .chip {
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-faint);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+    }
+
+    .hint {
+      width: min(720px, 100%);
+      font-size: 12.5px;
+      color: var(--text-faint);
+      line-height: 1.7;
+      text-align: center;
+      margin-top: 6px;
+    }
+    kbd {
+      font: inherit; font-size: 11px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 1px 5px;
+      color: var(--text-dim);
+    }
+
+    footer {
+      margin-top: 34px;
+      font-size: 12px;
+      color: var(--text-faint);
+      text-align: center;
+      line-height: 1.8;
+    }
+    footer a { color: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="mark"><i></i><i></i><i></i><i></i>🎥</div>
+    <h1>Finger Frame Live</h1>
+    <div class="sub">
+      Make the <b>two-hand finger frame</b> at your webcam — the world inside
+      the frame is restyled live. Every effect runs on your GPU in this tab:
+      <b>no API key, no upload, no waiting</b>.
+    </div>
+  </header>
+
+  <div id="fxbar"></div>
+
+  <div id="stage">
+    <video id="cam" playsinline muted></video>
+    <div class="canvas-wrap"><canvas id="canvas"></canvas></div>
+  </div>
+
+  <div id="controls">
+    <button id="btn-start" class="primary">▶ Start camera</button>
+    <button id="btn-snap" disabled>⬇ Snapshot</button>
+    <button id="btn-record" disabled>● Record</button>
+    <label class="toggle"><input type="checkbox" id="mirror" checked /> Mirror</label>
+  </div>
+
+  <div class="statusrow" style="margin-top: 14px">
+    <div id="status"></div>
+    <span class="chip" id="chip-track">camera off</span>
+    <span class="chip" id="chip-fps">— fps</span>
+  </div>
+
+  <div class="hint">
+    <kbd>1</kbd>–<kbd>6</kbd> or <kbd>←</kbd><kbd>→</kbd> switch effect ·
+    <kbd>M</kbd> mirror · <kbd>S</kbd> snapshot · <kbd>R</kbd> record
+  </div>
+
+  <footer>
+    MediaPipe hand tracking · Canvas 2D effects · runs entirely in your browser<br />
+    <a href="../">AI restyle sibling app</a>
+    ·
+    <a href="https://github.com/milleniumvietnam/finger-frame-effect-ai" target="_blank" rel="noopener">source on GitHub</a>
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
