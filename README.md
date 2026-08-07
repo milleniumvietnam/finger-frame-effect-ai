@@ -97,11 +97,11 @@ param loads a video from the server directory (dev convenience).
 
 `.github/workflows/pages.yml` publishes the repository to GitHub Pages on
 every push to `main` — `/` serves the AI app and `/live/` the live-camera
-one. It needs Pages switched on once, by hand: **Settings → Pages → Build
-and deployment → Source: GitHub Actions**. (On a fork, Actions also has to
-be enabled under **Settings → Actions**.) Until then the workflow run fails
-at the deploy step with a "Pages site not found"-style error; nothing else
-in the repo depends on it.
+one. It switches Pages on by itself the first time it runs
+(`configure-pages` with `enablement: true`). If your account or org blocks
+that, turn it on by hand instead — **Settings → Pages → Build and
+deployment → Source: GitHub Actions** — and re-run the workflow; nothing
+else in the repo depends on it.
 
 ## CLI alternative (Python)
 
