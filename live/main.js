@@ -34,6 +34,7 @@ const tmpCtx = tmp.getContext("2d", { willReadFrequently: true });
 const statusEl = document.getElementById("status");
 const stage = document.getElementById("stage");
 const btnStart = document.getElementById("btn-start");
+const btnFlip = document.getElementById("btn-flip");
 const btnSnap = document.getElementById("btn-snap");
 const btnRecord = document.getElementById("btn-record");
 const mirrorBox = document.getElementById("mirror");
@@ -43,6 +44,7 @@ const chipTrack = document.getElementById("chip-track");
 
 let landmarker = null;
 let stream = null;
+let facing = "user";
 let running = false;
 let corners = null;
 let presence = 0;
@@ -323,35 +325,72 @@ async function initLandmarker() {
   if (landmarker) return;
   status("Loading hand tracker…");
   const fileset = await FilesetResolver.forVisionTasks(WASM_URL);
-  landmarker = await HandLandmarker.createFromOptions(fileset, {
+  const options = {
     baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
     runningMode: "VIDEO",
     numHands: 2,
     minHandDetectionConfidence: 0.3,
     minHandPresenceConfidence: 0.3,
     minTrackingConfidence: 0.3,
-  });
+  };
+  try {
+    landmarker = await HandLandmarker.createFromOptions(fileset, options);
+  } catch (err) {
+    // Some machines have no usable WebGL for the GPU delegate — CPU still works.
+    console.warn("GPU delegate unavailable, falling back to CPU:", err);
+    options.baseOptions.delegate = "CPU";
+    landmarker = await HandLandmarker.createFromOptions(fileset, options);
+  }
+}
+
+// Fit the canvases to the stream. Called on start and whenever the camera
+// hands us a different size (orientation changes, camera switches).
+function sizeToVideo() {
+  const w = cam.videoWidth || 1280;
+  const h = cam.videoHeight || 720;
+  if (canvas.width === w && canvas.height === h) return;
+  canvas.width = src.width = w;
+  canvas.height = src.height = h;
+  corners = null;
+  presence = 0;
+  frameActive = false;
+}
+
+async function openStream() {
+  const wanted = {
+    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: facing },
+    audio: false,
+  };
+  try {
+    return await navigator.mediaDevices.getUserMedia(wanted);
+  } catch (err) {
+    // A device with only one camera rejects an unsatisfiable facingMode.
+    if (err?.name !== "OverconstrainedError" && err?.name !== "NotFoundError") throw err;
+    return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+  }
 }
 
 async function startCamera() {
   btnStart.disabled = true;
   try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error(
+        window.isSecureContext
+          ? "this browser has no camera API"
+          : "the camera needs a secure page — open this over https:// or on localhost"
+      );
+    }
     status("Asking for the camera…");
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-      audio: false,
-    });
+    stream = await openStream();
     cam.srcObject = stream;
     if (cam.readyState < 1) {
       await new Promise((res) => (cam.onloadedmetadata = res));
     }
     await cam.play();
 
-    const w = cam.videoWidth || 1280;
-    const h = cam.videoHeight || 720;
-    canvas.width = src.width = w;
-    canvas.height = src.height = h;
+    sizeToVideo();
     stage.style.display = "flex";
+    await showFlipIfMultipleCameras();
 
     await initLandmarker();
 
@@ -375,6 +414,45 @@ async function startCamera() {
   }
 }
 
+// The flip button only earns its place when there really is a second camera.
+async function showFlipIfMultipleCameras() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === "videoinput").length;
+    btnFlip.classList.toggle("hidden", cams < 2);
+  } catch {
+    /* device enumeration is best effort */
+  }
+}
+
+async function flipCamera() {
+  if (!running) return;
+  btnFlip.disabled = true;
+  const previous = facing;
+  facing = facing === "user" ? "environment" : "user";
+  status("Switching camera…");
+  try {
+    stream.getTracks().forEach((t) => t.stop());
+    stream = await openStream();
+    cam.srcObject = stream;
+    await cam.play();
+    sizeToVideo();
+    // A rear camera is not a mirror — nobody expects their room flipped.
+    mirrorBox.checked = facing === "user";
+    mirrorBox.dispatchEvent(new Event("change"));
+    status(facing === "user" ? "Front camera." : "Rear camera.");
+  } catch (err) {
+    console.error(err);
+    facing = previous;
+    status("⚠️ Could not switch camera: " + (err.message || err));
+  } finally {
+    btnFlip.disabled = false;
+  }
+}
+
+btnFlip.addEventListener("click", flipCamera);
+
 function stopCamera() {
   running = false;
   if (recording) toggleRecording();
@@ -386,6 +464,7 @@ function stopCamera() {
   frameActive = false;
   btnStart.textContent = "▶ Start camera";
   btnStart.classList.add("primary");
+  btnFlip.classList.add("hidden");
   btnSnap.disabled = true;
   btnRecord.disabled = true;
   chipTrack.textContent = "camera off";
@@ -564,6 +643,7 @@ function loop() {
   if (!running) return;
   requestAnimationFrame(loop);
   if (cam.readyState < 2 || !canvas.width) return;
+  sizeToVideo();
 
   const now = performance.now();
   const t = now / 1000;
@@ -679,6 +759,8 @@ document.addEventListener("keydown", (e) => {
     btnSnap.click();
   } else if (k === "r" && !btnRecord.disabled) {
     toggleRecording();
+  } else if (k === "f" && !btnFlip.classList.contains("hidden")) {
+    flipCamera();
   }
 });
 

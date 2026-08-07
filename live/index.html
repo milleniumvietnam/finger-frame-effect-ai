@@ -219,6 +219,7 @@
       line-height: 1.8;
     }
     footer a { color: var(--text-dim); }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -241,6 +242,7 @@
 
   <div id="controls">
     <button id="btn-start" class="primary">▶ Start camera</button>
+    <button id="btn-flip" class="hidden">⇄ Flip camera</button>
     <button id="btn-snap" disabled>⬇ Snapshot</button>
     <button id="btn-record" disabled>● Record</button>
     <label class="toggle"><input type="checkbox" id="mirror" checked /> Mirror</label>
@@ -254,7 +256,7 @@
 
   <div class="hint">
     <kbd>1</kbd>–<kbd>6</kbd> or <kbd>←</kbd><kbd>→</kbd> switch effect ·
-    <kbd>M</kbd> mirror · <kbd>S</kbd> snapshot · <kbd>R</kbd> record
+    <kbd>M</kbd> mirror · <kbd>F</kbd> flip camera · <kbd>S</kbd> snapshot · <kbd>R</kbd> record
   </div>
 
   <footer>

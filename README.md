@@ -1,6 +1,8 @@
 # Finger Frame AI 🎬✨
 
-**Try it: https://sophiamyang.github.io/finger-frame-effect-ai/**
+**Try it:** [AI restyle](https://milleniumvietnam.github.io/finger-frame-effect-ai/)
+· [live camera, no key](https://milleniumvietnam.github.io/finger-frame-effect-ai/live/)
+(upstream: [sophiamyang.github.io](https://sophiamyang.github.io/finger-frame-effect-ai/))
 
 Upload a video of the two-hand finger-frame gesture — get it back with an
 **AI-generated world inside the frame**. The whole video is restyled by a
@@ -90,6 +92,16 @@ python3 -m http.server 8124
 Then open http://localhost:8124 for the AI app, or
 http://localhost:8124/live/ for the live-camera one. A `?src=<file>` query
 param loads a video from the server directory (dev convenience).
+
+## Publishing
+
+`.github/workflows/pages.yml` publishes the repository to GitHub Pages on
+every push to `main` — `/` serves the AI app and `/live/` the live-camera
+one. It needs Pages switched on once, by hand: **Settings → Pages → Build
+and deployment → Source: GitHub Actions**. (On a fork, Actions also has to
+be enabled under **Settings → Actions**.) Until then the workflow run fails
+at the deploy step with a "Pages site not found"-style error; nothing else
+in the repo depends on it.
 
 ## CLI alternative (Python)
 
